@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1a56db">
+  <title>Családi naptár</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Családi naptár</h1>
+    <button id="logoutBtn" class="link" hidden>Kilépés</button>
+  </header>
+
+  <main>
+    <section id="setupView" class="card" hidden>
+      <h2>Beállítás szükséges</h2>
+      <p>A <code>config.js</code> fájlban még nincs megadva a Google kliensazonosító. A teendőket a <code>README.md</code> írja le.</p>
+    </section>
+
+    <section id="loginView" class="card center" hidden>
+      <p>Jelentkezz be a Google-fiókoddal, hogy a családi naptárba írhass.</p>
+      <button id="loginBtn" class="primary">Bejelentkezés Google-fiókkal</button>
+    </section>
+
+    <div id="appView" hidden>
+      <section class="card">
+        <label for="calendarSel">Naptár</label>
+        <select id="calendarSel"></select>
+      </section>
+
+      <form id="eventForm" class="card" autocomplete="off">
+        <h2 id="formTitle">Új esemény</h2>
+
+        <label for="title">Cím</label>
+        <input id="title" type="text" maxlength="200" placeholder="pl. Fogorvos" required>
+
+        <div class="row three">
+          <div><label for="year">Év</label><select id="year"></select></div>
+          <div><label for="month">Hónap</label><select id="month"></select></div>
+          <div><label for="day">Nap</label><select id="day"></select></div>
+        </div>
+
+        <label class="check"><input id="allDay" type="checkbox"> Egész napos esemény</label>
+
+        <div id="timeFields">
+          <div class="row three">
+            <div><label for="hour">Óra</label><select id="hour"></select></div>
+            <div><label for="minute">Perc</label><select id="minute"></select></div>
+            <div><label for="duration">Időtartam</label><select id="duration"></select></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="saveBtn" type="submit" class="primary">Mentés a naptárba</button>
+          <button id="cancelEditBtn" type="button" hidden>Mégse</button>
+        </div>
+      </form>
+
+      <section class="card">
+        <div class="listhead">
+          <h2>Közelgő események</h2>
+          <button id="refreshBtn" class="link" type="button">Frissítés</button>
+        </div>
+        <ul id="eventList"></ul>
+        <p id="emptyMsg" class="muted" hidden>Nincs közelgő esemény.</p>
+      </section>
+    </div>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="window.onGisLoaded && window.onGisLoaded()"></script>
+</body>
+</html>
