@@ -40,6 +40,7 @@
     <div id="appView" hidden>
       <form id="eventForm" class="card" autocomplete="off">
         <h2 id="formTitle">Új esemény</h2>
+        <p id="calendarName" class="muted calname"></p>
 
         <label for="title">Cím</label>
         <input id="title" type="text" maxlength="200" placeholder="pl. Fogorvos" required>
@@ -71,9 +72,11 @@
           <h2>Közelgő események</h2>
           <button id="refreshBtn" class="link" type="button">Frissítés</button>
         </div>
-        <p id="calendarName" class="muted calname"></p>
+        <div id="sourceFilters" class="filters"></div>
         <ul id="eventList"></ul>
-        <p id="emptyMsg" class="muted" hidden>Nincs közelgő esemény.</p>
+        <p id="emptyMsg" class="muted" hidden>Nincs esemény ebben az időszakban.</p>
+        <p id="rangeMsg" class="muted calname"></p>
+        <button id="moreBtn" type="button" class="wide">Későbbi események betöltése</button>
       </section>
     </div>
   </main>

@@ -20,6 +20,8 @@ const store = {
 let tokenClient = null;
 let accessToken = null;
 let calendarId = null; // a családi naptár azonosítója; az app csak ebbe ír
+let sources = []; // a listában megjelenő naptárak: a családi naptár és a családtagok saját naptárai
+let rangeDays = 60; // ennyi napra előre mutatja az eseményeket
 let editing = null; // a szerkesztett esemény azonosítója, vagy null
 let events = [];
 
@@ -82,6 +84,8 @@ function clearSession() {
   if (accessToken && window.google) google.accounts.oauth2.revoke(accessToken, () => {});
   accessToken = null;
   calendarId = null;
+  sources = [];
+  rangeDays = 60;
   for (const k of ["token", "tokenExpiry", "signedIn"]) store.del(k);
   $("userEmail").textContent = "";
   renderEvents([]);
@@ -151,16 +155,76 @@ async function checkAccess() {
     return false;
   }
   calendarId = cal.id;
+  const famName = cal.summaryOverride || cal.summary;
   $("userEmail").textContent = email;
-  $("calendarName").textContent = "Naptár: " + (cal.summaryOverride || cal.summary);
+  $("calendarName").textContent = "Mentés ide: " + famName + " naptár";
+
+  // A listában a családi naptár mellett az engedélyezett családtagok saját naptárai is megjelennek
+  // (amelyik meg van osztva a belépett fiókkal). Ezek csak olvashatók az appból.
+  sources = [{ id: cal.id, name: famName, family: true }];
+  for (const c of items) {
+    const id = (c.id || "").toLowerCase();
+    if (c.id === cal.id || id.endsWith(".calendar.google.com") || !id.includes("@")) continue;
+    if (!ALLOWED_EMAIL_HASHES.includes(await sha256Hex(id))) continue;
+    const label = c.summaryOverride || c.summary || c.id;
+    sources.push({ id: c.id, name: c.primary ? "Saját naptár" : label.includes("@") ? label.split("@")[0] : label, family: false });
+  }
+  renderFilters();
   return true;
+}
+
+function hiddenSources() {
+  try { return JSON.parse(store.get("hiddenSources") || "[]"); } catch { return []; }
+}
+
+function renderFilters() {
+  const box = $("sourceFilters");
+  box.textContent = "";
+  box.hidden = sources.length < 2;
+  const hidden = hiddenSources();
+  for (const src of sources) {
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = !hidden.includes(src.id);
+    cb.onchange = () => {
+      const h = hiddenSources().filter((id) => id !== src.id);
+      if (!cb.checked) h.push(src.id);
+      store.set("hiddenSources", JSON.stringify(h));
+      loadEvents().catch((e) => toast(e.message, true));
+    };
+    label.append(cb, src.name);
+    box.append(label);
+  }
 }
 
 async function loadEvents() {
   if (!calendarId) return;
-  const q = new URLSearchParams({ timeMin: new Date().toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: "50" });
-  const data = await api(calPath() + "?" + q);
-  renderEvents(data.items || []);
+  const hidden = hiddenSources();
+  const shown = sources.filter((src) => !hidden.includes(src.id));
+  const now = new Date();
+  const until = new Date(now.getTime() + rangeDays * 86400000);
+  const q = new URLSearchParams({ timeMin: now.toISOString(), timeMax: until.toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: "250" });
+  const results = await Promise.allSettled(
+    shown.map((src) => api("/calendars/" + encodeURIComponent(src.id) + "/events?" + q))
+  );
+  if (!accessToken) return; // közben lejárt a belépés
+  const merged = [], seen = new Set(), failed = [];
+  results.forEach((r, i) => {
+    if (r.status !== "fulfilled") { failed.push(shown[i].name); return; }
+    for (const ev of r.value.items || []) {
+      // Ugyanaz az esemény több naptárban is szerepelhet (pl. meghívás); csak egyszer mutatjuk.
+      const key = (ev.iCalUID || ev.id) + "|" + (ev.start.dateTime || ev.start.date);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      ev._source = shown[i];
+      merged.push(ev);
+    }
+  });
+  merged.sort((x, y) => evStart(x) - evStart(y));
+  renderEvents(merged);
+  $("rangeMsg").textContent = "Események eddig: " + until.toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric" });
+  if (failed.length) toast("Nem sikerült betölteni: " + failed.join(", "), true);
 }
 
 /* ---------- Eseménylista ---------- */
@@ -191,13 +255,24 @@ function renderEvents(items) {
     const what = document.createElement("div"); what.className = "what";
     what.textContent = ev.summary || "(cím nélkül)";
     row.append(when, what);
+    li.append(row);
+    // Csak a családi naptár eseményei módosíthatók; a többi naptáré csak olvasható, a naptár nevével jelölve.
+    if (!ev._source || !ev._source.family) {
+      if (ev._source) {
+        const tag = document.createElement("span"); tag.className = "tag";
+        tag.textContent = ev._source.name;
+        what.append(document.createElement("br"), tag);
+      }
+      ul.append(li);
+      continue;
+    }
     const btns = document.createElement("div"); btns.className = "evbtns";
     const edit = document.createElement("button"); edit.type = "button"; edit.textContent = "Módosítás";
     edit.onclick = () => startEdit(ev);
     const del = document.createElement("button"); del.type = "button"; del.className = "danger"; del.textContent = "Törlés";
     del.onclick = () => deleteEvent(ev, del);
     btns.append(edit, del);
-    li.append(row, btns);
+    li.append(btns);
     ul.append(li);
   }
 }
@@ -355,6 +430,7 @@ function init() {
   $("loginBtn").onclick = login;
   $("logoutBtn").onclick = logout;
   $("refreshBtn").onclick = () => loadEvents().catch((e) => toast(e.message, true));
+  $("moreBtn").onclick = () => { rangeDays += 60; loadEvents().catch((e) => toast(e.message, true)); };
   $("deniedBtn").onclick = () => { show("loginView"); login("select_account"); };
   // Ha a háttérből visszatér az app, frissítjük a listát.
   document.addEventListener("visibilitychange", () => {

@@ -1,4 +1,4 @@
-const CACHE = "csaladi-naptar-v2";
+const CACHE = "csaladi-naptar-v3";
 const SHELL = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
