@@ -1,4 +1,4 @@
-# Családi naptár
+# Füleki család naptár
 
 Telefonra telepíthető webalkalmazás (PWA), amellyel a család tagjai a saját Google-fiókjukkal eseményeket vehetnek fel a közös „Család” Google-naptárba, illetve módosíthatják és törölhetik a közelgő eseményeket.
 
@@ -16,11 +16,11 @@ Az appnak egy `https://` kezdetű címen kell futnia. A legegyszerűbb ingyenes 
 
 ### 2. Google kliensazonosító létrehozása
 
-1. Nyisd meg: <https://console.cloud.google.com/> , és hozz létre egy új projektet (pl. „Családi naptár”).
+1. Nyisd meg: <https://console.cloud.google.com/> , és hozz létre egy új projektet (pl. „Füleki család naptár”).
 2. **APIs & Services → Library** → keresd meg a **Google Calendar API**-t → **Enable**.
 3. **APIs & Services → OAuth consent screen** (Google Auth Platform):
    - User type / Audience: **External**
-   - App neve: Családi naptár, a kapcsolattartó e-mail a sajátod.
+   - App neve: Füleki család naptár, a kapcsolattartó e-mail a sajátod.
    - **Test users**: add hozzá minden családtag Gmail-címét, aki használni fogja az appot.
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
    - Application type: **Web application**
@@ -46,7 +46,7 @@ Ugyanezeket a címeket a 2/3. pontban tesztfelhasználóként is fel kell venni.
 2. Menü (⋮) → **Hozzáadás a kezdőképernyőhöz / Alkalmazás telepítése**.
 3. Indítsd el az ikonról, és koppints a **Bejelentkezés Google-fiókkal** gombra.
 
-Az első belépéskor a Google figyelmeztet, hogy az alkalmazást „a Google nem ellenőrizte”. Ez saját, tesztmódban futó appnál normális: **Speciális → Tovább a(z) Családi naptár oldalra**, majd engedélyezd a naptárhozzáférést.
+Az első belépéskor a Google figyelmeztet, hogy az alkalmazást „a Google nem ellenőrizte”. Ez saját, tesztmódban futó appnál normális: **Speciális → Tovább a(z) Füleki család naptár oldalra**, majd engedélyezd a naptárhozzáférést.
 
 ## Biztonság
 

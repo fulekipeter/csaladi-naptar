@@ -1,6 +1,6 @@
 {
-  "name": "Családi naptár",
-  "short_name": "Naptár",
+  "name": "Füleki család naptár",
+  "short_name": "Füleki naptár",
   "lang": "hu",
   "start_url": "./",
   "scope": "./",

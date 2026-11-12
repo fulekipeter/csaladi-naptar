@@ -1,6 +1,6 @@
 "use strict";
 
-const VERSION = "4";
+const VERSION = "5";
 const SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly";
 const API = "https://www.googleapis.com/calendar/v3";
 const CLIENT_ID = (window.APP_CONFIG || {}).CLIENT_ID || "";
