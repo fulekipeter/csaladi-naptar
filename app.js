@@ -1,6 +1,6 @@
 "use strict";
 
-const VERSION = "6";
+const VERSION = "7";
 const SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly";
 const API = "https://www.googleapis.com/calendar/v3";
 const CLIENT_ID = (window.APP_CONFIG || {}).CLIENT_ID || "";
@@ -25,6 +25,7 @@ let calendarId = null; // a családi naptár azonosítója; az app csak ebbe ír
 let sources = []; // a listában megjelenő naptárak: a családi naptár és a családtagok saját naptárai
 let rangeDays = 60; // ennyi napra előre mutatja az eseményeket
 let editing = null; // a szerkesztett esemény azonosítója, vagy null
+let editingCal = null; // a szerkesztett esemény naptárának azonosítója
 let events = [];
 
 /* ---------- Értesítés ---------- */
@@ -136,7 +137,7 @@ async function api(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-const calPath = () => "/calendars/" + encodeURIComponent(calendarId) + "/events";
+const calPath = (id) => "/calendars/" + encodeURIComponent(id || calendarId) + "/events";
 
 // Ellenőrzi a belépett fiókot, és megkeresi a családi naptárat. Hamissal tér vissza, ha a fiók nem használhatja az appot.
 async function checkAccess() {
@@ -159,11 +160,10 @@ async function checkAccess() {
   calendarId = cal.id;
   const famName = cal.summaryOverride || cal.summary;
   $("userEmail").textContent = email;
-  $("calendarName").textContent = "Mentés ide: " + famName + " naptár";
 
   // A listában a fiók minden naptára megjelenhet (csak a családi naptár szerkeszthető).
   // Alapból az látszik, ami a Google Naptárban is be van pipálva, és mindig a családtagok naptárai.
-  sources = [{ id: cal.id, name: famName, family: true, on: true }];
+  sources = [{ id: cal.id, name: famName, family: true, editable: true, on: true }];
   for (const c of items) {
     if (!c.id || c.id === cal.id) continue;
     const id = c.id.toLowerCase();
@@ -172,9 +172,12 @@ async function checkAccess() {
     const label = c.summaryOverride || c.summary || c.id;
     sources.push({
       id: c.id, family: false, on: member || c.selected === true,
+      // A családi naptáron kívül csak a belépett fiók saját naptára szerkeszthető.
+      editable: c.primary === true && c.accessRole === "owner",
       name: c.primary ? "Saját naptár" : label.includes("@") ? label.split("@")[0] : label,
     });
   }
+  $("calendarName").textContent = "Mentés ide: " + famName + " naptár";
   renderFilters();
   return true;
 }
@@ -265,16 +268,13 @@ function renderEvents(items) {
     what.textContent = ev.summary || "(cím nélkül)";
     row.append(when, what);
     li.append(row);
-    // Csak a családi naptár eseményei módosíthatók; a többi naptáré csak olvasható, a naptár nevével jelölve.
-    if (!ev._source || !ev._source.family) {
-      if (ev._source) {
-        const tag = document.createElement("span"); tag.className = "tag";
-        tag.textContent = ev._source.name;
-        what.append(document.createElement("br"), tag);
-      }
-      ul.append(li);
-      continue;
+    // A családi és a saját naptár eseményei módosíthatók; a többi naptáré csak olvasható. A nem családi eseményt a naptár neve jelöli.
+    if (ev._source && !ev._source.family) {
+      const tag = document.createElement("span"); tag.className = "tag";
+      tag.textContent = ev._source.name;
+      what.append(document.createElement("br"), tag);
     }
+    if (!ev._source || !ev._source.editable) { ul.append(li); continue; }
     const btns = document.createElement("div"); btns.className = "evbtns";
     const edit = document.createElement("button"); edit.type = "button"; edit.textContent = "Módosítás";
     edit.onclick = () => startEdit(ev);
@@ -290,7 +290,7 @@ async function deleteEvent(ev, btn) {
   if (!confirm('Biztosan törlöd?\n\n"' + (ev.summary || "(cím nélkül)") + '"')) return;
   btn.disabled = true;
   try {
-    await api(calPath() + "/" + encodeURIComponent(ev.id), { method: "DELETE" });
+    await api(calPath(ev._source.id) + "/" + encodeURIComponent(ev.id), { method: "DELETE" });
     if (editing === ev.id) resetForm();
     toast("Esemény törölve.");
     await loadEvents();
@@ -347,6 +347,8 @@ function setFormDate(d, minutes) {
 
 function resetForm() {
   editing = null;
+  editingCal = null;
+  $("calendarName").textContent = sources.length ? "Mentés ide: " + sources[0].name + " naptár" : "";
   $("formTitle").textContent = "Új esemény";
   $("saveBtn").textContent = "Mentés a naptárba";
   $("cancelEditBtn").hidden = true;
@@ -361,6 +363,8 @@ function resetForm() {
 
 function startEdit(ev) {
   editing = ev.id;
+  editingCal = ev._source.id;
+  $("calendarName").textContent = "Módosítás itt: " + ev._source.name + (ev.recurringEventId ? " (ismétlődő esemény, csak ez az alkalom)" : "");
   $("formTitle").textContent = "Esemény módosítása";
   $("saveBtn").textContent = "Módosítás mentése";
   $("cancelEditBtn").hidden = false;
@@ -401,7 +405,7 @@ async function saveEvent(e) {
   try {
     // Módosításnál a null mezők törlik a régi (egész napos / időpontos) értéket; új eseménynél nem kellenek.
     const body = JSON.stringify(buildEvent(), editing ? undefined : (k, v) => (v === null ? undefined : v));
-    if (editing) await api(calPath() + "/" + encodeURIComponent(editing), { method: "PATCH", body });
+    if (editing) await api(calPath(editingCal) + "/" + encodeURIComponent(editing), { method: "PATCH", body });
     else await api(calPath(), { method: "POST", body });
     toast(editing ? "Módosítás elmentve." : "Esemény elmentve a naptárba.");
     resetForm();

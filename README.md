@@ -53,13 +53,13 @@ Az első belépéskor a Google figyelmeztet, hogy az alkalmazást „a Google ne
 - **Naptármegosztás (Google ellenőrzi):** a családi naptárba csak az tud írni, akinek ott írási joga van. Ez a fő védelem, az appból nem kerülhető meg.
 - **Tesztfelhasználók (Google ellenőrzi):** az appba csak a Cloud Console-ban felvett címekkel lehet belépni.
 - **E-mail-engedélylista (az app ellenőrzi):** belépés után az app megnézi a fiók címét; ha nincs a listán, visszavonja a hozzáférést és kilépteti. Ez második védvonal: a telefonon fut, ezért önmagában nem helyettesíti a fenti kettőt.
-- **Írás csak a családi naptárba:** az app kizárólag a Google családi naptárába ír (vagy a `config.js` → `DEFAULT_CALENDAR_ID` naptárba, ha meg van adva); másik naptár nem választható.
+- **Új esemény csak a családi naptárba:** új eseményt az app kizárólag a Google családi naptárába vesz fel (vagy a `config.js` → `DEFAULT_CALENDAR_ID` naptárba, ha meg van adva); másik naptár nem választható.
 - **Belépett fiók kijelzése:** a fejlécben látszik, melyik címmel vagy bent.
 - **Tartalombiztonsági szabály (CSP):** az oldal csak a saját fájljait és a Google bejelentkezési, illetve naptárszolgáltatását érheti el.
 
 ## Tudnivalók
 
-- A lista a fiók minden naptárát mutathatja. Alapból a családi naptár, a családtagok saját naptárai és a Google Naptárban bepipált naptárak látszanak; a lista fölötti kapcsolókkal naptáranként ki-be kapcsolhatók. Módosítani és törölni csak a családi naptár eseményeit lehet; a többi csak olvasható.
+- A lista a fiók minden naptárát mutathatja. Alapból a családi naptár, a családtagok saját naptárai és a Google Naptárban bepipált naptárak látszanak; a lista fölötti kapcsolókkal naptáranként ki-be kapcsolhatók. Módosítani és törölni a családi naptár és a belépett fiók saját naptárának eseményeit lehet (ismétlődő eseménynél csak az adott alkalmat); a többi csak olvasható.
 - A lista 60 napra előre mutat; a „Későbbi események betöltése” gomb további 60 nappal bővíti.
 
 - A Google egy órára ad belépést. Ha lejár, az app újra a bejelentkező gombot mutatja; egy koppintás, és jelszó nélkül visszalép.
