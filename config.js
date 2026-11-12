@@ -1,7 +1,7 @@
 // Lásd: README.md
 window.APP_CONFIG = {
   // A Google Cloud Console-ban létrehozott OAuth kliensazonosító.
-  CLIENT_ID: "IDE_JON_A_KLIENSAZONOSITO.apps.googleusercontent.com",
+  CLIENT_ID: "303428450960-jah79mgsbn1fffralc38dv0jk3dan5fj.apps.googleusercontent.com",
 
   // Az engedélyezett e-mail-címek ujjlenyomatai (SHA-256). Csak ezekkel a fiókokkal használható az app.
   // Új cím ujjlenyomatát az app címén a /hash.html oldal számolja ki; soronként egyet kell ide beírni.
