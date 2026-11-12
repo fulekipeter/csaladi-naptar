@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' https://accounts.google.com/gsi/style; img-src 'self'; manifest-src 'self'; worker-src 'self'; connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#1a56db">
   <title>Családi naptár</title>
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,14 +13,23 @@
 </head>
 <body>
   <header>
-    <h1>Családi naptár</h1>
+    <div>
+      <h1>Családi naptár</h1>
+      <div id="userEmail" class="who" hidden></div>
+    </div>
     <button id="logoutBtn" class="link" hidden>Kilépés</button>
   </header>
 
   <main>
     <section id="setupView" class="card" hidden>
       <h2>Beállítás szükséges</h2>
-      <p>A <code>config.js</code> fájlban még nincs megadva a Google kliensazonosító. A teendőket a <code>README.md</code> írja le.</p>
+      <p>A <code>config.js</code> fájlban még nincs megadva a Google kliensazonosító vagy az engedélyezett e-mail-címek listája. A teendőket a <code>README.md</code> írja le.</p>
+    </section>
+
+    <section id="deniedView" class="card center" hidden>
+      <h2>Nincs hozzáférés</h2>
+      <p id="deniedMsg"></p>
+      <button id="deniedBtn" class="primary">Belépés másik fiókkal</button>
     </section>
 
     <section id="loginView" class="card center" hidden>
@@ -27,11 +38,6 @@
     </section>
 
     <div id="appView" hidden>
-      <section class="card">
-        <label for="calendarSel">Naptár</label>
-        <select id="calendarSel"></select>
-      </section>
-
       <form id="eventForm" class="card" autocomplete="off">
         <h2 id="formTitle">Új esemény</h2>
 
@@ -65,6 +71,7 @@
           <h2>Közelgő események</h2>
           <button id="refreshBtn" class="link" type="button">Frissítés</button>
         </div>
+        <p id="calendarName" class="muted calname"></p>
         <ul id="eventList"></ul>
         <p id="emptyMsg" class="muted" hidden>Nincs közelgő esemény.</p>
       </section>
@@ -75,6 +82,5 @@
 
   <script src="config.js"></script>
   <script src="app.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer onload="window.onGisLoaded && window.onGisLoaded()"></script>
 </body>
 </html>

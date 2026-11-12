@@ -30,7 +30,17 @@ Az appnak egy `https://` kezdetű címen kell futnia. A legegyszerűbb ingyenes 
 
 A Client ID nem titok, nyugodtan lehet nyilvános repóban.
 
-### 3. Telepítés a telefonokra
+### 3. Engedélyezett e-mail-címek megadása
+
+Az appot csak azok a Google-fiókok használhatják, amelyeknek az ujjlenyomata szerepel a `config.js` fájl `ALLOWED_EMAIL_HASHES` listájában. A címek így nem olvashatók ki a nyilvános repóból.
+
+1. Nyisd meg az app címén a `hash.html` oldalt (pl. `https://FELHASZNALONEV.github.io/csaladi-naptar/hash.html`).
+2. Írd be a családtag Gmail-címét, és a kapott sort másold be a listába (soronként egy cím).
+3. Töltsd fel a módosított `config.js` fájlt.
+
+Ugyanezeket a címeket a 2/3. pontban tesztfelhasználóként is fel kell venni.
+
+### 4. Telepítés a telefonokra
 
 1. Androidon nyisd meg az app címét **Chrome**-ban.
 2. Menü (⋮) → **Hozzáadás a kezdőképernyőhöz / Alkalmazás telepítése**.
@@ -38,9 +48,16 @@ A Client ID nem titok, nyugodtan lehet nyilvános repóban.
 
 Az első belépéskor a Google figyelmeztet, hogy az alkalmazást „a Google nem ellenőrizte”. Ez saját, tesztmódban futó appnál normális: **Speciális → Tovább a(z) Családi naptár oldalra**, majd engedélyezd a naptárhozzáférést.
 
+## Biztonság
+
+- **Naptármegosztás (Google ellenőrzi):** a családi naptárba csak az tud írni, akinek ott írási joga van. Ez a fő védelem, az appból nem kerülhető meg.
+- **Tesztfelhasználók (Google ellenőrzi):** az appba csak a Cloud Console-ban felvett címekkel lehet belépni.
+- **E-mail-engedélylista (az app ellenőrzi):** belépés után az app megnézi a fiók címét; ha nincs a listán, visszavonja a hozzáférést és kilépteti. Ez második védvonal: a telefonon fut, ezért önmagában nem helyettesíti a fenti kettőt.
+- **Csak a családi naptár:** az app kizárólag a Google családi naptárába ír (vagy a `config.js` → `DEFAULT_CALENDAR_ID` naptárba, ha meg van adva); másik naptár nem választható.
+- **Belépett fiók kijelzése:** a fejlécben látszik, melyik címmel vagy bent.
+- **Tartalombiztonsági szabály (CSP):** az oldal csak a saját fájljait és a Google bejelentkezési, illetve naptárszolgáltatását érheti el.
+
 ## Tudnivalók
 
-- Alapból a Google családi („Család”) naptára van kiválasztva (felülírható: `config.js` → `DEFAULT_CALENDAR_ID`); a legördülő listában bármely olyan naptár választható, amelybe az adott családtagnak írási joga van.
 - A Google egy órára ad belépést. Ha lejár, az app újra a bejelentkező gombot mutatja; egy koppintás, és jelszó nélkül visszalép.
-- Csak azok tudnak belépni, akik a 2/3. pontban tesztfelhasználóként szerepelnek.
 - Az időpontok a telefon időzónájában (Magyarországon: Europe/Budapest) kerülnek a naptárba.

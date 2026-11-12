@@ -4,6 +4,7 @@ const SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.goog
 const API = "https://www.googleapis.com/calendar/v3";
 const CLIENT_ID = (window.APP_CONFIG || {}).CLIENT_ID || "";
 const DEFAULT_CALENDAR_ID = (window.APP_CONFIG || {}).DEFAULT_CALENDAR_ID || "";
+const ALLOWED_EMAIL_HASHES = ((window.APP_CONFIG || {}).ALLOWED_EMAIL_HASHES || []).map((h) => String(h).trim().toLowerCase());
 const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Budapest";
 const MONTHS = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
 const DURATIONS = [[15, "15 perc"], [30, "30 perc"], [45, "45 perc"], [60, "1 óra"], [90, "1,5 óra"], [120, "2 óra"], [180, "3 óra"], [240, "4 óra"], [480, "8 óra"]];
@@ -18,6 +19,7 @@ const store = {
 
 let tokenClient = null;
 let accessToken = null;
+let calendarId = null; // a családi naptár azonosítója; az app csak ebbe ír
 let editing = null; // a szerkesztett esemény azonosítója, vagy null
 let events = [];
 
@@ -33,8 +35,9 @@ function toast(msg, isError) {
 
 /* ---------- Bejelentkezés ---------- */
 function show(view) {
-  for (const v of ["setupView", "loginView", "appView"]) $(v).hidden = v !== view;
+  for (const v of ["setupView", "loginView", "deniedView", "appView"]) $(v).hidden = v !== view;
   $("logoutBtn").hidden = view !== "appView";
+  $("userEmail").hidden = view !== "appView";
 }
 
 function loadSavedToken() {
@@ -53,26 +56,50 @@ function onToken(resp) {
   startApp();
 }
 
-window.onGisLoaded = function () {
-  if (!configured() || tokenClient || !window.google) return;
+function onGisLoaded() {
+  if (tokenClient || !window.google) return;
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID, scope: SCOPES, callback: onToken,
     error_callback: () => { if (!accessToken) show("loginView"); },
   });
-  $("loginBtn").disabled = false;
-};
-
-function login() {
-  if (!tokenClient) { toast("A Google bejelentkezés még töltődik, próbáld újra.", true); return; }
-  // Aki már adott engedélyt, annak nem kérdez rá újra.
-  tokenClient.requestAccessToken({ prompt: store.get("signedIn") ? "" : "consent" });
 }
 
-function logout() {
+function loadGis() {
+  const sc = document.createElement("script");
+  sc.src = "https://accounts.google.com/gsi/client";
+  sc.async = true;
+  sc.onload = onGisLoaded;
+  document.head.append(sc);
+}
+
+function login(prompt) {
+  if (!tokenClient) { toast("A Google bejelentkezés még töltődik, próbáld újra.", true); return; }
+  // Aki már adott engedélyt, annak nem kérdez rá újra.
+  tokenClient.requestAccessToken({ prompt: typeof prompt === "string" ? prompt : store.get("signedIn") ? "" : "consent" });
+}
+
+function clearSession() {
   if (accessToken && window.google) google.accounts.oauth2.revoke(accessToken, () => {});
   accessToken = null;
+  calendarId = null;
   for (const k of ["token", "tokenExpiry", "signedIn"]) store.del(k);
-  show("loginView");
+  $("userEmail").textContent = "";
+  renderEvents([]);
+  resetForm();
+}
+
+function logout() { clearSession(); show("loginView"); }
+
+// Kilépteti a fiókot, visszavonja a hozzáférését, és megmutatja, miért nem használhatja az appot.
+function deny(msg) {
+  clearSession();
+  $("deniedMsg").textContent = msg;
+  show("deniedView");
+}
+
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function sessionExpired() {
@@ -103,28 +130,34 @@ async function api(path, options = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-const calPath = () => "/calendars/" + encodeURIComponent($("calendarSel").value) + "/events";
+const calPath = () => "/calendars/" + encodeURIComponent(calendarId) + "/events";
 
-async function loadCalendars() {
-  const data = await api("/users/me/calendarList?minAccessRole=writer&maxResults=250");
-  const sel = $("calendarSel");
-  sel.textContent = "";
-  for (const c of data.items || []) {
-    const o = new Option((c.summaryOverride || c.summary) + (c.primary ? " (saját)" : ""), c.id);
-    sel.add(o);
+// Ellenőrzi a belépett fiókot, és megkeresi a családi naptárat. Hamissal tér vissza, ha a fiók nem használhatja az appot.
+async function checkAccess() {
+  const data = await api("/users/me/calendarList?maxResults=250");
+  const items = data.items || [];
+  // A fiók elsődleges naptárának azonosítója maga az e-mail-cím.
+  const email = ((items.find((c) => c.primary) || {}).id || "").trim().toLowerCase();
+  if (!email || !ALLOWED_EMAIL_HASHES.includes(await sha256Hex(email))) {
+    deny((email || "Ez a fiók") + " nem szerepel az engedélyezett családtagok között.");
+    return false;
   }
-  const saved = store.get("calendarId");
-  if (saved && [...sel.options].some((o) => o.value === saved)) sel.value = saved;
-  else {
-    // Alapértelmezés: a config.js-ben megadott naptár, ennek hiányában a Google családi naptára ("family…" azonosító).
-    const ids = [...sel.options].map((o) => o.value);
-    const def = ids.find((id) => id === DEFAULT_CALENDAR_ID) || ids.find((id) => id.startsWith("family"));
-    if (def) sel.value = def;
+  const writable = items.filter((c) => c.accessRole === "owner" || c.accessRole === "writer");
+  const cal = DEFAULT_CALENDAR_ID
+    ? writable.find((c) => c.id === DEFAULT_CALENDAR_ID)
+    : writable.find((c) => c.id.startsWith("family"));
+  if (!cal) {
+    deny(email + " fiókkal nincs írási jogod a családi naptárhoz. Kérd meg a naptár tulajdonosát, hogy ossza meg veled.");
+    return false;
   }
+  calendarId = cal.id;
+  $("userEmail").textContent = email;
+  $("calendarName").textContent = "Naptár: " + (cal.summaryOverride || cal.summary);
+  return true;
 }
 
 async function loadEvents() {
-  if (!$("calendarSel").value) { renderEvents([]); return; }
+  if (!calendarId) return;
   const q = new URLSearchParams({ timeMin: new Date().toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: "50" });
   const data = await api(calPath() + "?" + q);
   renderEvents(data.items || []);
@@ -278,7 +311,7 @@ function buildEvent() {
 async function saveEvent(e) {
   e.preventDefault();
   if (!$("title").value.trim()) { toast("Adj címet az eseménynek.", true); return; }
-  if (!$("calendarSel").value) { toast("Nincs kiválasztott naptár.", true); return; }
+  if (!calendarId) return;
   const btn = $("saveBtn");
   btn.disabled = true;
   try {
@@ -294,15 +327,18 @@ async function saveEvent(e) {
 }
 
 /* ---------- Indulás ---------- */
-function configured() { return CLIENT_ID && !CLIENT_ID.startsWith("IDE_JON"); }
+function configured() { return CLIENT_ID && !CLIENT_ID.startsWith("IDE_JON") && ALLOWED_EMAIL_HASHES.length > 0; }
 
 async function startApp() {
-  show("appView");
+  // Az űrlap csak a fiók ellenőrzése után jelenik meg.
+  show("loginView");
+  $("loginBtn").disabled = true;
   try {
-    await loadCalendars();
-    if (!$("calendarSel").value) toast("Nincs olyan naptárad, amelybe írhatsz.", true);
+    if (!(await checkAccess())) return;
+    show("appView");
     await loadEvents();
   } catch (e) { toast(e.message, true); }
+  finally { $("loginBtn").disabled = false; }
 }
 
 function init() {
@@ -319,19 +355,15 @@ function init() {
   $("loginBtn").onclick = login;
   $("logoutBtn").onclick = logout;
   $("refreshBtn").onclick = () => loadEvents().catch((e) => toast(e.message, true));
-  $("calendarSel").onchange = () => {
-    store.set("calendarId", $("calendarSel").value);
-    resetForm();
-    loadEvents().catch((e) => toast(e.message, true));
-  };
+  $("deniedBtn").onclick = () => { show("loginView"); login("select_account"); };
   // Ha a háttérből visszatér az app, frissítjük a listát.
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && accessToken && !$("appView").hidden) loadEvents().catch(() => {});
+    if (document.visibilityState === "visible" && accessToken && calendarId && !$("appView").hidden) loadEvents().catch(() => {});
   });
 
   if (!configured()) { show("setupView"); return; }
   if (loadSavedToken()) startApp(); else show("loginView");
-  window.onGisLoaded();
+  loadGis();
 
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 }

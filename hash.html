@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="robots" content="noindex">
+  <title>E-mail ujjlenyomat</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header><h1>E-mail ujjlenyomat</h1></header>
+  <main>
+    <section class="card">
+      <p>Írd be a családtag Google-fiókjának e-mail-címét. A kapott sort másold a <code>config.js</code> fájl <code>ALLOWED_EMAIL_HASHES</code> listájába. A cím nem hagyja el ezt a készüléket.</p>
+      <label for="email">E-mail-cím</label>
+      <input id="email" type="text" inputmode="email" autocapitalize="none" autocomplete="off" placeholder="valaki@gmail.com">
+      <label for="out">Beillesztendő sor</label>
+      <input id="out" type="text" readonly>
+    </section>
+  </main>
+  <script src="hash.js"></script>
+</body>
+</html>

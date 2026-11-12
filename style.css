@@ -13,6 +13,8 @@ body { margin: 0; background: var(--bg); color: var(--text);
 header { background: var(--primary); color: var(--primary-text); display: flex; align-items: center;
   justify-content: space-between; padding: calc(12px + env(safe-area-inset-top)) 16px 12px; position: sticky; top: 0; z-index: 2; }
 header h1 { font-size: 20px; margin: 0; }
+header .who { font-size: 12px; opacity: .85; overflow-wrap: anywhere; }
+.calname { margin: 2px 0 0; font-size: 13px; }
 header .link { color: var(--primary-text); }
 main { max-width: 560px; margin: 0 auto; padding: 16px 16px calc(32px + env(safe-area-inset-bottom)); }
 .card { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
