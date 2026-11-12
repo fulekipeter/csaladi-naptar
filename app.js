@@ -1,11 +1,12 @@
 "use strict";
 
-const VERSION = "5";
+const VERSION = "6";
 const SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly";
 const API = "https://www.googleapis.com/calendar/v3";
 const CLIENT_ID = (window.APP_CONFIG || {}).CLIENT_ID || "";
 const DEFAULT_CALENDAR_ID = (window.APP_CONFIG || {}).DEFAULT_CALENDAR_ID || "";
 const ALLOWED_EMAIL_HASHES = ((window.APP_CONFIG || {}).ALLOWED_EMAIL_HASHES || []).map((h) => String(h).trim().toLowerCase());
+const EXCLUDED_CALENDAR_IDS = ((window.APP_CONFIG || {}).EXCLUDED_CALENDAR_IDS || []).map((id) => String(id).toLowerCase());
 const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Budapest";
 const MONTHS = ["január", "február", "március", "április", "május", "június", "július", "augusztus", "szeptember", "október", "november", "december"];
 const DURATIONS = [[15, "15 perc"], [30, "30 perc"], [45, "45 perc"], [60, "1 óra"], [90, "1,5 óra"], [120, "2 óra"], [180, "3 óra"], [240, "4 óra"], [480, "8 óra"]];
@@ -166,6 +167,7 @@ async function checkAccess() {
   for (const c of items) {
     if (!c.id || c.id === cal.id) continue;
     const id = c.id.toLowerCase();
+    if (EXCLUDED_CALENDAR_IDS.includes(id)) continue;
     const member = id.includes("@") && !id.endsWith(".calendar.google.com") && ALLOWED_EMAIL_HASHES.includes(await sha256Hex(id));
     const label = c.summaryOverride || c.summary || c.id;
     sources.push({
