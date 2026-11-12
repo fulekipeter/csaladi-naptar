@@ -59,8 +59,9 @@ Az első belépéskor a Google figyelmeztet, hogy az alkalmazást „a Google ne
 
 ## Tudnivalók
 
-- A lista a családi naptár mellett az engedélyezett családtagok saját naptárait is mutatja, ha azok meg vannak osztva a belépett fiókkal. A lista fölötti kapcsolókkal naptáranként ki-be kapcsolhatók. Módosítani és törölni csak a családi naptár eseményeit lehet; a többi csak olvasható.
+- A lista a fiók minden naptárát mutathatja. Alapból a családi naptár, a családtagok saját naptárai és a Google Naptárban bepipált naptárak látszanak; a lista fölötti kapcsolókkal naptáranként ki-be kapcsolhatók. Módosítani és törölni csak a családi naptár eseményeit lehet; a többi csak olvasható.
 - A lista 60 napra előre mutat; a „Későbbi események betöltése” gomb további 60 nappal bővíti.
 
 - A Google egy órára ad belépést. Ha lejár, az app újra a bejelentkező gombot mutatja; egy koppintás, és jelszó nélkül visszalép.
+- Az oldal alján látszik az app verziószáma; ebből ellenőrizhető, hogy a telefon már a friss változatot futtatja-e.
 - Az időpontok a telefon időzónájában (Magyarországon: Europe/Budapest) kerülnek a naptárba.

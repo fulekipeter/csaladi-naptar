@@ -1,4 +1,4 @@
-const CACHE = "csaladi-naptar-v3";
+const CACHE = "csaladi-naptar-v4";
 const SHELL = ["./", "index.html", "style.css", "app.js", "config.js", "manifest.webmanifest", "icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
@@ -15,7 +15,8 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request).then((res) => {
+    // A böngésző gyorsítótárát megkerülve kérünk, hogy a frissítések azonnal megérkezzenek.
+    fetch(e.request, { cache: "no-cache" }).then((res) => {
       const copy = res.clone();
       caches.open(CACHE).then((c) => c.put(e.request, copy));
       return res;

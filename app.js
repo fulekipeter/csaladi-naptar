@@ -1,5 +1,6 @@
 "use strict";
 
+const VERSION = "4";
 const SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly";
 const API = "https://www.googleapis.com/calendar/v3";
 const CLIENT_ID = (window.APP_CONFIG || {}).CLIENT_ID || "";
@@ -159,38 +160,45 @@ async function checkAccess() {
   $("userEmail").textContent = email;
   $("calendarName").textContent = "Mentés ide: " + famName + " naptár";
 
-  // A listában a családi naptár mellett az engedélyezett családtagok saját naptárai is megjelennek
-  // (amelyik meg van osztva a belépett fiókkal). Ezek csak olvashatók az appból.
-  sources = [{ id: cal.id, name: famName, family: true }];
+  // A listában a fiók minden naptára megjelenhet (csak a családi naptár szerkeszthető).
+  // Alapból az látszik, ami a Google Naptárban is be van pipálva, és mindig a családtagok naptárai.
+  sources = [{ id: cal.id, name: famName, family: true, on: true }];
   for (const c of items) {
-    const id = (c.id || "").toLowerCase();
-    if (c.id === cal.id || id.endsWith(".calendar.google.com") || !id.includes("@")) continue;
-    if (!ALLOWED_EMAIL_HASHES.includes(await sha256Hex(id))) continue;
+    if (!c.id || c.id === cal.id) continue;
+    const id = c.id.toLowerCase();
+    const member = id.includes("@") && !id.endsWith(".calendar.google.com") && ALLOWED_EMAIL_HASHES.includes(await sha256Hex(id));
     const label = c.summaryOverride || c.summary || c.id;
-    sources.push({ id: c.id, name: c.primary ? "Saját naptár" : label.includes("@") ? label.split("@")[0] : label, family: false });
+    sources.push({
+      id: c.id, family: false, on: member || c.selected === true,
+      name: c.primary ? "Saját naptár" : label.includes("@") ? label.split("@")[0] : label,
+    });
   }
   renderFilters();
   return true;
 }
 
-function hiddenSources() {
-  try { return JSON.parse(store.get("hiddenSources") || "[]"); } catch { return []; }
+// A felhasználó naptáranként felülírhatja, mi látszik; a választást a telefon megjegyzi.
+function sourcePrefs() {
+  try { return JSON.parse(store.get("sourcePrefs") || "{}") || {}; } catch { return {}; }
+}
+function isShown(src) {
+  const pref = sourcePrefs()[src.id];
+  return typeof pref === "boolean" ? pref : src.on;
 }
 
 function renderFilters() {
   const box = $("sourceFilters");
   box.textContent = "";
   box.hidden = sources.length < 2;
-  const hidden = hiddenSources();
   for (const src of sources) {
     const label = document.createElement("label");
     const cb = document.createElement("input");
     cb.type = "checkbox";
-    cb.checked = !hidden.includes(src.id);
+    cb.checked = isShown(src);
     cb.onchange = () => {
-      const h = hiddenSources().filter((id) => id !== src.id);
-      if (!cb.checked) h.push(src.id);
-      store.set("hiddenSources", JSON.stringify(h));
+      const prefs = sourcePrefs();
+      prefs[src.id] = cb.checked;
+      store.set("sourcePrefs", JSON.stringify(prefs));
       loadEvents().catch((e) => toast(e.message, true));
     };
     label.append(cb, src.name);
@@ -200,8 +208,7 @@ function renderFilters() {
 
 async function loadEvents() {
   if (!calendarId) return;
-  const hidden = hiddenSources();
-  const shown = sources.filter((src) => !hidden.includes(src.id));
+  const shown = sources.filter(isShown);
   const now = new Date();
   const until = new Date(now.getTime() + rangeDays * 86400000);
   const q = new URLSearchParams({ timeMin: now.toISOString(), timeMax: until.toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: "250" });
@@ -417,6 +424,7 @@ async function startApp() {
 }
 
 function init() {
+  $("version").textContent = "Verzió: " + VERSION;
   fillSelect($("month"), MONTHS.map((m, i) => [i + 1, m]));
   fillSelect($("hour"), Array.from({ length: 24 }, (_, i) => [i, pad(i)]));
   fillSelect($("minute"), Array.from({ length: 60 }, (_, i) => [i, pad(i)]));

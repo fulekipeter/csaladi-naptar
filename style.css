@@ -63,3 +63,4 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 5px; }
   opacity: 0; transform: translateY(12px); transition: .2s; pointer-events: none; z-index: 5; }
 #toast.show { opacity: 1; transform: none; }
 #toast.error { background: #b3261e; }
+.version { font-size: 12px; margin: 0; }
