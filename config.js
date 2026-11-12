@@ -7,6 +7,7 @@ window.APP_CONFIG = {
   // Új cím ujjlenyomatát az app címén a /hash.html oldal számolja ki; soronként egyet kell ide beírni.
   ALLOWED_EMAIL_HASHES: [
     "f9b5534f95d0af459982a9f2eb1452565681ae0cdc999ec2aa154d98fc397a09",
+    "3e98911d015722bb578c6fdcebd7a41f330d2af13df09ec0b577571c295cf5e6",
   ],
 
   // Nem kötelező: a családi naptár azonosítója.
